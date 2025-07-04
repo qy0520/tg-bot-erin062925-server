@@ -34,14 +34,7 @@ def generate_reply(user_text):
     context = get_knowledge_context(user_text)
 
     # 建立完整 prompt
-    prompt = f"""
-你是一個中文 AI 助理，請根據以下背景知識回答問題：
-
-{context}
-
-使用者：{user_text}
-機器人：
-"""
+    prompt = f"{context}\n使用者：{user_text}\n機器人："
 
     # 模型輸入處理
     inputs = tokenizer(prompt, return_tensors="pt", truncation=True, max_length=512)
