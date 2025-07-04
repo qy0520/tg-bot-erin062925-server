@@ -5,6 +5,16 @@ from knowledge_plugin import get_knowledge_context  # 補腦插件
 import torch  # 深度學習運算
 import requests  # 發送訊息給 Telegram
 import os  # 取得系統環境變數
+import time  # ✅ 加在最上方（與其他 import 並列）
+
+# ✅ 顯示「輸入中...」提示，讓使用者知道機器人有收到訊息
+requests.post(f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendChatAction", json={
+    "chat_id": chat_id,
+    "action": "typing"  # 顯示「輸入中...」
+})
+
+time.sleep(1.5)  # ✅ 延遲 1.5 秒，讓「輸入中...」能顯示一段時間
+
 
 # === 初始化 Flask 伺服器 ===
 app = Flask(__name__)
@@ -87,6 +97,11 @@ def telegram_webhook():
             "chat_id": chat_id,
             "action": "typing"
         })
+
+    try:
+    # ✅ 顯示輸入中 + 延遲
+        requests.post(...)  ←這段
+        time.sleep(1.5)
 
         reply = generate_reply(user_text)
 
