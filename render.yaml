@@ -1,0 +1,8 @@
+services:
+  - type: web
+    name: tg-bot-erin062925-server
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python app.py
+    plan: free
+    autoDeploy: true
