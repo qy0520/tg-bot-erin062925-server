@@ -26,18 +26,11 @@ def generate_reply(prompt):
     # 使用模型生成回覆文字
     outputs = model.generate(
         **inputs,              # 將剛剛轉換好的 inputs 傳入（包含 input_ids 和 attention_mask）
-        
         max_new_tokens=40,     # 限制這次生成最多產出 40 個新 token（避免回應太長或太慢）
-
         do_sample=True,        # 啟用隨機抽樣（非 deterministic），使回答更自然多變
-
         top_k=50,              # 限制每一步只從最高機率前 50 個 token 中抽樣（避免品質下降）
-        
         top_p=0.95,            # 使用 nucleus sampling，從累積機率前 95% 的 token 中選擇
-                               # （比 top_k 更動態，兩者可合用）
-        
         temperature=0.8,       # 控制隨機性：越低越保守，越高越發散，常見值為 0.7～1.0
-        
         pad_token_id=tokenizer.eos_token_id  # 如果模型需要 padding，用 <eos> 作為補足標記
     )
 
@@ -64,8 +57,13 @@ def telegram_webhook():
     if not data or "message" not in data:
         return jsonify({"status": "ignored"}), 200
 
-    # 從資料中提取訊息內容與聊天 ID（用於回傳訊息）
     message = data["message"]
+
+    # ✅ ⛔ 若訊息是來自 bot 自己（防止回應自己），就忽略
+    if message.get("from", {}).get("is_bot", False):
+        return jsonify({"status": "bot message ignored"}), 200
+
+    # 從資料中提取訊息內容與聊天 ID（用於回傳訊息）
     chat_id = message["chat"]["id"]                  # 傳送者的 Telegram ID
     user_text = message.get("text", "")              # 使用者傳來的文字（若沒傳文字，預設空字串）
 
