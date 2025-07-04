@@ -1,10 +1,10 @@
 #2025 0704 1440
-from flask import Flask, request, jsonify             # 建立 API 伺服器與處理 POST/GET 請求
+from flask import Flask, request, jsonify  # 建立 API 伺服器與處理 POST/GET 請求
 from transformers import AutoTokenizer, AutoModelForCausalLM  # 載入 Hugging Face 的 tokenizer 和模型
-from knowledge_plugin import get_knowledge_context
-import torch                                           # 深度學習運算
-import requests                                        # 發送訊息給 Telegram
-import os                                              # 取得系統環境變數
+from knowledge_plugin import get_knowledge_context  # 補腦插件
+import torch  # 深度學習運算
+import requests  # 發送訊息給 Telegram
+import os  # 取得系統環境變數
 
 # === 初始化 Flask 伺服器 ===
 app = Flask(__name__)
@@ -18,22 +18,13 @@ model_name = "souljoy/gpt2-small-chinese-cluecorpussmall"
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 model = AutoModelForCausalLM.from_pretrained(model_name)
 
-import json
+# === 回覆文字生成函數（加入補腦 context）===
+def generate_reply(user_text):
+    # 🔍 取得補腦 context（外掛知識）
+    context = get_knowledge_context(user_text)
 
-# 載入補腦資料
-with open("universal_knowledge.json", "r", encoding="utf-8") as f:
-    knowledge = json.load(f)
-
-# 檢查關鍵詞是否命中
-context = ""
-for keyword, info in knowledge.items():
-    if keyword in user_text:
-        context += info + "\n"
-
-# 在收到使用者輸入後插入補腦
-context = get_knowledge_context(user_text)
-
-prompt = f"""
+    # 建立完整 prompt
+    prompt = f"""
 你是一個中文 AI 助理，請根據以下背景知識回答問題：
 
 {context}
@@ -42,12 +33,10 @@ prompt = f"""
 機器人：
 """
 
-
-# === 回覆文字生成函數 ===
-def generate_reply(prompt):
-    prompt = f"使用者：{prompt}\n機器人："  # ✅ 加入對話上下文提示詞，讓模型知道要扮演回應角色
+    # 模型輸入處理
     inputs = tokenizer(prompt, return_tensors="pt", truncation=True, max_length=512)
 
+    # 產生回應
     outputs = model.generate(
         **inputs,
         max_new_tokens=40,
@@ -59,8 +48,9 @@ def generate_reply(prompt):
     )
 
     reply = tokenizer.decode(outputs[0], skip_special_tokens=True)
-    reply = reply.strip().split("使用者：")[0]  # ✅ 去除模型自己補的下一句
+    reply = reply.strip().split("使用者：")[0]  # ✅ 去掉亂補的下一句
 
+    # 檢查亂碼或過短回答
     if len(reply) < 2 or reply.count("？") > 3:
         reply = "🤖 我還在學習中，可能不太理解這個問題..."
 
@@ -81,6 +71,7 @@ def telegram_webhook():
 
     message = data["message"]
 
+    # ⛔ 避免機器人回自己
     if message.get("from", {}).get("is_bot", False):
         return jsonify({"status": "bot message ignored"}), 200
 
@@ -91,7 +82,7 @@ def telegram_webhook():
         return jsonify({"status": "no text"}), 200
 
     try:
-        # ✅ 顯示「打字中...」提示
+        # ✅ 顯示「輸入中...」
         requests.post(f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendChatAction", json={
             "chat_id": chat_id,
             "action": "typing"
@@ -102,6 +93,7 @@ def telegram_webhook():
     except Exception:
         reply = "⚠️ 抱歉，我現在有點狀況，請稍後再試。"
 
+    # 回覆訊息
     requests.post(TELEGRAM_URL, json={
         "chat_id": chat_id,
         "text": reply
@@ -109,7 +101,8 @@ def telegram_webhook():
 
     return jsonify({"status": "ok"}), 200
 
-# === 啟動伺服器（適用 Render、Heroku 類平台）===
+# === 啟動伺服器（Render、Heroku 用）===
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
+
