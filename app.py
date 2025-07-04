@@ -1,4 +1,4 @@
-#2025 0704 1440
+#2025 0704 1440.
 from flask import Flask, request, jsonify  # 建立 API 伺服器與處理 POST/GET 請求
 from transformers import AutoTokenizer, AutoModelForCausalLM  # 載入 Hugging Face 的 tokenizer 和模型
 from knowledge_plugin import get_knowledge_context  # 補腦插件
