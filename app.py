@@ -72,11 +72,19 @@ def telegram_webhook():
         return jsonify({"status": "no text"}), 200
 
     try:
+        # ✅ 顯示「打字中...」提示
+        requests.post(f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendChatAction", json={
+            "chat_id": chat_id,
+            "action": "typing"        #顯示「輸入中...」
+        })
+
         # 呼叫模型產生回覆
         reply = generate_reply(user_text)
-    except Exception:
+
+     except Exception:
         # 若模型出錯（例如沒連網、超時），則回覆預設錯誤訊息
         reply = "⚠️ 抱歉，我現在有點狀況，請稍後再試。"
+
 
     # 使用 Telegram API 發送回應訊息回給使用者
     requests.post(TELEGRAM_URL, json={
