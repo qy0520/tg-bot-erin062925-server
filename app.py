@@ -1,3 +1,5 @@
+#2025 0706 1140
+
 # 引入必要的模組
 from flask import Flask, request, jsonify, Response       # Flask 用來建立網頁伺服器與處理請求
 from transformers import AutoTokenizer, AutoModelForCausalLM  # Transformers 模組，用來載入模型與分詞器
