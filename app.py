@@ -43,58 +43,59 @@ def generate_reply(prompt):
     return reply.strip()
 
 # === "/" 路徑測試是否正常 ===
-@app.route("/", methods=["GET"])
-def index():
-    return "✅ Flask bot is running!"
 
-# === Telegram Webhook 接收訊息 ===
-# 當 Telegram 發送訊息時，會 POST 到這個 /telegram 路徑
+def reward_function(user_text, reply):
+    score = 0
+    if "謝謝" in reply or "感謝" in reply:
+        score += 1
+    if "髒話" in reply:
+        score -= 2
+    return score
+
+import csv
+def save_interaction(user_text, reply, reward):
+    with open("interactions_log.csv", "a", encoding="utf-8", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow([user_text, reply, reward])
+
 @app.route("/telegram", methods=["POST"])
 def telegram_webhook():
-    # 將接收到的 JSON 請求轉換為 Python 字典
     data = request.get_json()
-
-    # 檢查資料是否為空，或是否包含 "message" 欄位（若沒有就忽略）
     if not data or "message" not in data:
         return jsonify({"status": "ignored"}), 200
 
     message = data["message"]
-
-    # ✅ ⛔ 若訊息是來自 bot 自己（防止回應自己），就忽略
     if message.get("from", {}).get("is_bot", False):
         return jsonify({"status": "bot message ignored"}), 200
 
-    # 從資料中提取訊息內容與聊天 ID（用於回傳訊息）
-    chat_id = message["chat"]["id"]                  # 傳送者的 Telegram ID
-    user_text = message.get("text", "")              # 使用者傳來的文字（若沒傳文字，預設空字串）
+    chat_id = message["chat"]["id"]
+    user_text = message.get("text", "")
 
-    # 如果文字是空的（例如貼圖、照片），就跳過
     if not user_text:
         return jsonify({"status": "no text"}), 200
 
     try:
-        # ✅ 顯示「打字中...」提示
         requests.post(f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendChatAction", json={
             "chat_id": chat_id,
-            "action": "typing"        #顯示「輸入中...」
+            "action": "typing"
         })
 
-        # 呼叫模型產生回覆
         reply = generate_reply(user_text)
+        reward = reward_function(user_text, reply)
+        save_interaction(user_text, reply, reward)
 
-     except Exception:
-        # 若模型出錯（例如沒連網、超時），則回覆預設錯誤訊息
+    except Exception as e:
+        print("Error:", e)
         reply = "⚠️ 抱歉，我現在有點狀況，請稍後再試。"
 
 
-    # 使用 Telegram API 發送回應訊息回給使用者
     requests.post(TELEGRAM_URL, json={
-        "chat_id": chat_id,     # 指定回傳目標聊天室
-        "text": reply           # 傳送文字訊息
+        "chat_id": chat_id,
+        "text": reply
     })
 
-    # 回傳成功狀態給 Telegram（HTTP 200），表示 webhook 接收正常
     return jsonify({"status": "ok"}), 200
+
 
 # === 啟動伺服器（適用 Render、Heroku 類平台）===
 if __name__ == "__main__":
