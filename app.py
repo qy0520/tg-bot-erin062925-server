@@ -4,6 +4,7 @@ from transformers import AutoTokenizer, AutoModelForCausalLM  # 載入 Hugging F
 import torch                                           # 深度學習運算
 import requests                                        # 發送訊息給 Telegram
 import os                                              # 取得系統環境變數
+import shutil
 
 # === 初始化 Flask 伺服器 ===
 app = Flask(__name__)
@@ -96,10 +97,15 @@ def telegram_webhook():
 
     return jsonify({"status": "ok"}), 200
 
-
 # === 啟動伺服器（適用 Render、Heroku 類平台）===
 if __name__ == "__main__":
     # 取得 Render 平台注入的 PORT（預設值 10000）
     port = int(os.environ.get("PORT", 10000))
     # 0.0.0.0 允許外部連線進來
     app.run(host="0.0.0.0", port=port)
+
+# === 資料備份===
+def backup_csv():
+    # 將 interactions_log.csv 複製成 backup.csv（可改任何路徑）
+    shutil.copy("interactions_log.csv", "backup_interactions.csv")
+
