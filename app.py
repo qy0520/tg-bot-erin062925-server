@@ -1,9 +1,25 @@
 import os, time
+import os, sys
 from typing import Any, Dict
 from fastapi import FastAPI, Request, Header, HTTPException
 from dotenv import load_dotenv
 import httpx
 from openai import OpenAI
+
+def need(key):
+    v = os.environ.get(key)
+    if not v:
+        print(f"[FATAL] Missing env: {key}", file=sys.stderr)
+        sys.exit(1)
+    return v
+
+TELEGRAM_BOT_TOKEN = need("TELEGRAM_BOT_TOKEN")
+OPENAI_API_KEY     = need("OPENAI_API_KEY")
+WEBHOOK_SECRET     = os.environ.get("WEBHOOK_SECRET", "")
+ONLY_18_PLUS       = os.environ.get("ONLY_18_PLUS", "true").lower() == "true"
+RATE_LIMIT_PER_MIN = int(os.environ.get("RATE_LIMIT_PER_MIN", "20"))
+SYSTEM_PROMPT      = os.environ.get("SYSTEM_PROMPT", "你是僅供成年人使用的AI助理...")
+
 
 load_dotenv()
 
