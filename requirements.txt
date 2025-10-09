@@ -1,0 +1,5 @@
+fastapi==0.114.*
+uvicorn[standard]==0.30.*
+python-dotenv==1.0.*
+httpx==0.27.*
+openai==1.51.*      # OpenAI 官方 Python SDK（新版）
